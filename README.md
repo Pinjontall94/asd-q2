@@ -64,7 +64,7 @@ Note: Requires graphviz is installed
 
 ### Run the pipeline 
 
-#### Locally/On your device
+#### Locally / On your device:
 Run with:
 
 ``` sh
@@ -78,9 +78,20 @@ Your output files will be stored in a newly made "OTUs" folder
 and place them in a "data" folder 
 
 2. Generate a Qiime2-compatible manifest file for the resulting fastqs
-Note: Only tested on PHRED33 fastqs
+<i>Note: Only tested on PHRED33 fastqs</i>
 
-3. 
+3. Dereplicate the SampleData[Sequences] artifact
+
+4. <i>De novo </i> cluster FeatureTable[Frequency] and FeatureData[Sequence] 
+artifacts
+
+5. Generate FeatureTable and FeatureData summaries
+
+6. Create a tree for phylogenetic diversity analyses
+
+7. Determine alpha and beta diversity
+
+8. Perform taxonomic analysis (Greengenes, though? Maybe don't include this step)
 
 ## TODO
 
