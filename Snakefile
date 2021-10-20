@@ -28,4 +28,12 @@ rule srrMunch:
         """
 
 rule generateManifest:
-    input
+    input: "data"
+    output: "manifest.tsv"
+    shell:
+    	"scripts/manifest_gen.py -i {input} -o {output}"
+
+rule import:
+	input: "manifest.tsv"
+	shell:
+		"scripts/import-paired.sh"

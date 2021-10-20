@@ -80,18 +80,20 @@ and place them in a "data" folder
 2. Generate a Qiime2-compatible manifest file for the resulting fastqs
 <i>Note: Only tested on PHRED33 fastqs</i>
 
-3. Dereplicate the SampleData[Sequences] artifact
+3. Import Seqs
 
-4. <i>De novo </i> cluster FeatureTable[Frequency] and FeatureData[Sequence] 
+4. Merge paired-end reads with q2-vsearch's join pairs
+
+5. Dereplicate the SampleData[Sequences] artifact
+
+6. <i>De novo </i> cluster FeatureTable[Frequency] and FeatureData[Sequence] 
 artifacts
 
-5. Generate FeatureTable and FeatureData summaries
+7. Generate FeatureTable and FeatureData summaries
 
-6. Create a tree for phylogenetic diversity analyses
+8. Create a tree for phylogenetic diversity analyses
 
-7. Determine alpha and beta diversity
-
-8. Perform taxonomic analysis (Greengenes, though? Maybe don't include this step)
+9. Determine alpha and beta diversity
 
 ## TODO
 
