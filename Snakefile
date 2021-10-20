@@ -12,7 +12,8 @@ rule all:
     input:
         #expand("barcoded/{author}.fasta", author=config["AUTHOR"])
         #"metaan.otus.final.readmap.table"
-        expand("screened/{sample}.fasta", sample=SAMPLES)
+        #expand("screened/{sample}.fasta", sample=SAMPLES)
+        "rep-seqs.qzv"
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -31,9 +32,35 @@ rule generateManifest:
     input: "data"
     output: "manifest.tsv"
     shell:
-    	"scripts/manifest_gen.py -i {input} -o {output}"
+        "scripts/manifest_gen.py -i {input} -o {output}"
 
 rule import:
-	input: "manifest.tsv"
-	shell:
-		"scripts/import-paired.sh"
+    input: "manifest.tsv"
+    shell:
+        "scripts/import-paired.sh"
+
+rule mergePairs:
+    input: "test-paired-end-demux.qza"
+    shell:
+        "scripts/join_pairs.sh"
+
+rule derep:
+    input: "test-merged.qza"
+    shell:
+        "scripts/derep.sh"
+
+rule denovo:
+    input:
+        table="table.qza"
+        seqs="rep-seqs.qza"
+    output:
+        "table-dn-99.qza"
+        "rep-seqs.qza"
+    shell:
+        "scripts/de-novo.sh"
+
+rule tabulate_seqs:
+    input: "rep-seqs-dn-99.qza"
+    output: "rep-seqs.qzv"
+    shell:
+        "scripts/tab_visualize"
