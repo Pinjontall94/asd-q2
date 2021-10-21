@@ -4,3 +4,6 @@
 /manifest.tsv
 /merged/
 /paired/
+/.snakemake/
+/archive/
+/.ipynb_checkpoints/
