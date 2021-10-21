@@ -6,7 +6,7 @@ with open("SRR_Acc_List.txt") as f:
     SAMPLES = [line.rstrip("\n") for line in f]
 
 
-configfile: "config.yaml"
+#configfile: "config.yaml"
 
 rule all:
     input:
@@ -32,35 +32,46 @@ rule generateManifest:
     input: "data"
     output: "manifest.tsv"
     shell:
-        "scripts/manifest_gen.py -i {input} -o {output}"
+        "python scripts/manifest_gen.py -i {input} -o {output}"
 
 rule import:
     input: "manifest.tsv"
+    output: "test-paired-end-demux.qza"
     shell:
         "scripts/import-paired.sh"
 
 rule mergePairs:
     input: "test-paired-end-demux.qza"
+    output: "test-merged.qza"
     shell:
         "scripts/join_pairs.sh"
 
 rule derep:
     input: "test-merged.qza"
+    output:
+        "table.qza",
+        "rep-seqs.qza"
     shell:
         "scripts/derep.sh"
 
 rule denovo:
     input:
-        table="table.qza"
+        table="table.qza",
         seqs="rep-seqs.qza"
     output:
-        "table-dn-99.qza"
-        "rep-seqs.qza"
+        "table-dn-99.qza",
+        "rep-seqs-dn-99.qza"
     shell:
         "scripts/de-novo.sh"
 
 rule tabulate_seqs:
+    input: "table-dn-99.qza"
+    output: "table.qzv"
+    shell:
+        "scripts/tab_visualize.sh"
+
+rule seq_visualize:
     input: "rep-seqs-dn-99.qza"
     output: "rep-seqs.qzv"
     shell:
-        "scripts/tab_visualize"
+        "scripts/rep_seqs_visualize.sh"
