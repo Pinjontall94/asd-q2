@@ -430,4 +430,5 @@ dependencies:
   - bioconda/linux-64::bioconductor-dada2==1.18.0=r40h399db7b_1
   - qiime2/label/r2021.8/linux-64::q2-dada2==2021.8.0=py38h0ba0336_0
   - snakemake
+  - sra-tools
 prefix: /home/sjohnson/miniconda3/envs/snakeqiimer

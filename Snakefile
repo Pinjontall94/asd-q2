@@ -24,15 +24,21 @@ rule srrMunch:
     shell:
         """
         (while read line; do
-            fasterq-dump -O data $line
+            fasterq-dump -o {output} $line
         done < {input}) 2> {log}
         """
 
+#FIXME: fwd and rev arguments mean there can't be any pre-merged data (as
+#   opposed to just looking at all *.fastq files in "data/")
 rule generateManifest:
-    input: "data"
+    input:
+        fwd = expand("data/{sample}_1.fastq", sample=SAMPLES)
+        rev = expand("data/{sample}_2.fastq", sample=SAMPLES)
     output: "manifest.tsv"
     shell:
         "python scripts/manifest_gen.py -i {input} -o {output}"
+    #run:
+    #   "scripts/manifest_gen.py"
 
 rule import:
     input: "manifest.tsv"

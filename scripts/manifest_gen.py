@@ -35,10 +35,11 @@ fastqs = tuple(os.listdir(fastq_dir))
 #   (e.g. 'ERR1353528')
 
 # Extracts substrings from fastqs as re.match objects
-substrings = [re.search(".*(?=_R?[12]\.fastq)", i) for i in fastqs]
+substrings = [re.search(".*(?=_R?[12]\\.fastq)", i) for i in fastqs]
 
 # Get a list from the list of re.match objects (so it can be used in the dataframe later)
-sample_strings = list(map(lambda x: x.group(), substrings))
+#sample_strings = list(map(lambda x: x.group(), substrings))
+sample_strings = [x.group() for x in substrings if x]
 
 # Remove redundant entries from the reverse reads by taking only unique values in sample_strings
 sample_id = list(dict.fromkeys(sample_strings))

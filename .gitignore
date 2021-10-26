@@ -7,3 +7,4 @@
 /.snakemake/
 /archive/
 /.ipynb_checkpoints/
+/logs/
