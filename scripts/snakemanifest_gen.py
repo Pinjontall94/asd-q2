@@ -1,57 +1,44 @@
 #!/bin/env python
 
-import re, os, sys, argparse
+import re, os
 import pandas as pd
-from pandas.core.common import temp_setattr
 
-# Define argument parser
-parser = argparse.ArgumentParser(
-    description="Generates a Qiime 2-compatible manifest.tsv"
-)
-
-# Add arguments to parser object
-parser.add_argument("-f", "--forward", action="store", required=True)
-parser.add_argument("-r", "--reverse", action="store", required=False)
-parser.add_argument("-o", "--output", action="store", required=True)
-
-# Define parsed arguments as args
-args = parser.parse_args()
-
-#TODO: Modify this script to accept a single argument
-#TODO: Create conditional to differentiate between merged and pairwise
-#   sequences, based on a ".*(?=_R?1).fastq" pattern. NOTE: This will
-#   ignore the case where you download a fwd seq WITHOUT a matching rev
-#   seq. To account for this, run a check to see whether the _2 file
-#   exists, and throw an error if not.
-
-# Define input arguments
-#fwd = snakemake.input[0]
-fwd = args.forward
-
-#if snakemake.input[1] is True:
-if args.reverse is None:
-    print("No reverse sequence given, assuming sequences were already merged")
-else:
-    #rev = snakemake.input[1]
-    rev = args.reverse
-
-# Define output argument
-#manifest = snakemake.output[0]
-manifest = args.output
-
-# Extract sample string and fastq path (e.g. "SRR10007909" and
-#   "data/SRR10007909", respectively)
-fastq = os.path.splitext(fwd)
+# Define list of fastqs' full paths and associated sample IDs
+# (e.g. "data/SRR10007909_1.fastq" and "SRR10007909", respectively)
+#fastqs_full_path = [os.path.splitext(x) for x in snakemake.input]
+fastqs_full_path = snakemake.input
 sample_regex = "(?<=data/).*(?=_R?[12]\\.fastq)"
-sample_string = re.search(sample_regex, fastq).group()
+sample_id = [x.group() for x in re.search(sample_regex, snakemake.input) if x]
 
-temp_entry = f"{sample_string}\t{fwd}"
+fwd_regex = "(?<=data/).*_R?[1]\\.fastq"
+rev_regex = "(?<=data/).*_R?[2]\\.fastq"
+forward = [x.group() for x in re.search(fwd_regex, fastqs_full_path) if x]
+reverse = [x.group() for x in re.search(rev_regex, fastqs_full_path) if x]
 
-if rev is None:
-    entry = temp_entry
+if len(forward) > 0 and len(reverse) > 0:
+    # Create dictionary of headers and columns
+    d = {
+        "sample-id": sample_id,
+        "forward-absolute-filepath": forward,
+        "reverse-absolute-filepath": reverse,
+    }
+
+    # Import the dictionary into a dataframe
+    print("sample_id =", sample_id)
+    print("fastqs = ", fastqs_full_path)
+    print("forward =", forward)
+    print("reverse =", reverse)
+    df = pd.DataFrame(d)
+
+    # Export the dataframe to a file labeled manifest.tsv
+    manifest_tsv = df.to_csv(manifest, sep="\t", index=False)
+
+elif len(forward) == 0 and len(reverse) == 0:
+    d = {"sample-id": sample_id, "absolute-filepath": fastqs_full_path}
+
+    df = pd.DataFrame(d)
+
+    manifest_tsv = df.to_csv(manifest, sep="\t", index=False)
+
 else:
-    entry = temp_entry + f"\t{rev}"
-
-
-with open(manifest, "a+") as file:
-    file.write(entry)
+    print("Error! Mismatched numbers of forward and reverse reads")

@@ -15,8 +15,16 @@ rule all:
         #expand("screened/{sample}.fasta", sample=SAMPLES)
         "rep-seqs.qzv"
 
+# =================================================================
+# === NOTE: Maybe just condense srrMunch and generateManifest   ===
+# === into a single script? Outputting fastqs and manifest.tsv? ===
+# =================================================================
+
+ruleorder: srrMunch_paired > srrMunch_merged
+
+#TODO: Store the shell command in a script to tidy these two rules up
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
-rule srrMunch:
+rule srrMunch_paired:
     input: "SRR_Acc_List.txt"
     output:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
@@ -28,17 +36,41 @@ rule srrMunch:
         done < {input}) 2> {log}
         """
 
+rule srrMunch_merged:
+    input: "SRR_Acc_List.txt"
+    output:
+        expand("data/{sample}.fastq", sample=SAMPLES)
+    log: "logs/srrMunch/output.log"
+    shell:
+        """
+        (while read line; do
+            fasterq-dump -o {output} $line
+        done < {input}) 2> {log}
+        """
+
 #FIXME: fwd and rev arguments mean there can't be any pre-merged data (as
-#   opposed to just looking at all *.fastq files in "data/")
-rule generateManifest:
+#   opposed to just looking at all *.fastq files in "data/"). Create an
+#   input function to determine whether you're using
+#   "data/{sample}_{direction}.fastq" or "data/{sample}.fastq"
+ruleorder: generate_manifest_paired > generate_manifest_merged
+rule generate_manifest_paired:
     input:
-        fwd = expand("data/{sample}_1.fastq", sample=SAMPLES)
-        rev = expand("data/{sample}_2.fastq", sample=SAMPLES)
+        expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
     output: "manifest.tsv"
     shell:
         "python scripts/manifest_gen.py -i {input} -o {output}"
     #run:
     #   "scripts/manifest_gen.py"
+
+rule generate_manifest_merged:
+    input:
+        expand("data/{sample}.fastq", sample=SAMPLES)
+    output: "manifest.tsv"
+    shell:
+        "python scripts/manifest_gen.py -i {input} -o {output}"
+    #run:
+    #   "scripts/manifest_gen.py"
+
 
 rule import:
     input: "manifest.tsv"
