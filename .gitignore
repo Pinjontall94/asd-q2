@@ -8,3 +8,5 @@
 /archive/
 /.ipynb_checkpoints/
 /logs/
+/*.qza
+/*.qzv

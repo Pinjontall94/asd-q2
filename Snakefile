@@ -10,106 +10,153 @@ with open("SRR_Acc_List.txt") as f:
 
 rule all:
     input:
-        #expand("barcoded/{author}.fasta", author=config["AUTHOR"])
-        #"metaan.otus.final.readmap.table"
-        #expand("screened/{sample}.fasta", sample=SAMPLES)
         "rep-seqs.qzv"
 
-# =================================================================
-# === NOTE: Maybe just condense srrMunch and generateManifest   ===
-# === into a single script? Outputting fastqs and manifest.tsv? ===
-# =================================================================
+#ruleorder: srrMunch_paired > srrMunch_merged
 
-ruleorder: srrMunch_paired > srrMunch_merged
-
-#TODO: Store the shell command in a script to tidy these two rules up
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch_paired:
     input: "SRR_Acc_List.txt"
     output:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
     log: "logs/srrMunch/output.log"
+    threads: 6
     shell:
         """
         (while read line; do
-            fasterq-dump -o {output} $line
-        done < {input}) 2> {log}
+            fasterq-dump -O data $line
+        done < {input}) > {log} 2>&1
         """
 
-rule srrMunch_merged:
-    input: "SRR_Acc_List.txt"
-    output:
-        expand("data/{sample}.fastq", sample=SAMPLES)
-    log: "logs/srrMunch/output.log"
-    shell:
-        """
-        (while read line; do
-            fasterq-dump -o {output} $line
-        done < {input}) 2> {log}
-        """
+#NOTE: Not sure if this is needed, but still need to test how qiime2 handles
+#   mixed un/merged seqs within a single bioproject
+#rule srrMunch_merged:
+#    input: "SRR_Acc_List.txt"
+#    output:
+#        expand("data/{sample}.fastq", sample=SAMPLES)
+#    log: "logs/srrMunch/output.log"
+#    shell:
+#        """
+#        (while read line; do
+#            fasterq-dump -o {output} $line
+#        done < {input}) 2> {log}
+#        """
 
-#FIXME: fwd and rev arguments mean there can't be any pre-merged data (as
-#   opposed to just looking at all *.fastq files in "data/"). Create an
-#   input function to determine whether you're using
+#ruleorder: generate_manifest_paired > generate_manifest_merged
+#TODO: Create an input function to determine whether you're using
 #   "data/{sample}_{direction}.fastq" or "data/{sample}.fastq"
-ruleorder: generate_manifest_paired > generate_manifest_merged
-rule generate_manifest_paired:
+# Create qiime2 manifest
+rule generate_manifest:
     input:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
     output: "manifest.tsv"
     shell:
-        "python scripts/manifest_gen.py -i {input} -o {output}"
-    #run:
-    #   "scripts/manifest_gen.py"
+        "python scripts/manifest_gen.py -i data -o {output}"
 
-rule generate_manifest_merged:
-    input:
-        expand("data/{sample}.fastq", sample=SAMPLES)
-    output: "manifest.tsv"
-    shell:
-        "python scripts/manifest_gen.py -i {input} -o {output}"
-    #run:
-    #   "scripts/manifest_gen.py"
-
-
+# Import seqs via manifest
 rule import:
     input: "manifest.tsv"
     output: "test-paired-end-demux.qza"
+    log: "logs/generate_manifest/output.log"
+    threads: 6
     shell:
         "scripts/import-paired.sh"
+#        """
+#        (qiime tools import
+#          --type 'SampleData[PairedEndSequencesWithQuality]' \
+#          --input-path {input} \
+#          --output-path {output} \
+#          --input-format PairedEndFastqManifestPhred33V2) > {log} 2>&1
+#        """
 
-rule mergePairs:
+# Merge pairs using q2-vsearch join-pairs
+rule merge_pairs:
     input: "test-paired-end-demux.qza"
     output: "test-merged.qza"
+    log: "logs/merge_pairs/output.log"
+    threads: 6
     shell:
         "scripts/join_pairs.sh"
+#        """
+#        (qiime vsearch join-pairs \
+#        --i-demultiplexed-seqs {input} \
+#        --o-joined-sequences {output}) > {log} 2>&1
+#        """
 
+# Trim Primers
+#rule primer_trim:
+#    input: "test-merged.qza"
+#    output: "trimmed_demux.qza"
+#    log: "logs/primer_trim/output.log"
+#    params:
+#        fwd=config["primers"]["FWD"]
+#        rev=config["primers"]["REV"]
+#    shell:
+#        """
+#        qiime cutadapt trim-paired \
+#        --i-demultiplexed-sequences {input} \
+#        --p-adapter-f {params.fwd} \
+#        --p-adapter-r {params.rev} \
+#        --p-discard-untrimmed \
+#        --o-trimmed-sequences {output}
+#        """
+
+#rule offset:
+#    input: "trimmed_demux.qza"
+#    output: "offset_demux.qza"
+#    log: "logs/offset_trim/output.log"
+#    params:
+#        fwd=config["primers"]["FWD"]
+#        rev=config["primers"]["REV"]
+#    shell:
+#        """
+#        qiime cutadapt trim-paired \
+#        --i-demultiplexed-sequences {input} \
+#        --p-adapter-f {params.fwd} \
+#        --p-adapter-r {params.rev} \
+#        --p-discard-untrimmed \
+#        --o-trimmed-sequences {output}
+#        """
+
+# TODO: Add input function to output "trimmed_demux.qza" or "offset_demux.qza",
+#   depending on whether config["offset"]["FWD"] or config["offset"]["REV"]
+#   are non-zero. Let this function also determine parameters in trim and
+#   offset rules if possible. Otherwise have 4 separate rules for 5' and 3'
+#   cutadapt trim and offset.
 rule derep:
     input: "test-merged.qza"
     output:
         "table.qza",
         "rep-seqs.qza"
+    log: "logs/derep/output.log"
+    threads: 6
     shell:
         "scripts/derep.sh"
 
-rule denovo:
+rule de_novo:
     input:
         table="table.qza",
         seqs="rep-seqs.qza"
     output:
         "table-dn-99.qza",
         "rep-seqs-dn-99.qza"
+    log: "logs/de_novo/output.log"
+    threads: 6
     shell:
         "scripts/de-novo.sh"
 
 rule tabulate_seqs:
     input: "table-dn-99.qza"
     output: "table.qzv"
+    log: "logs/tabulate_seqs/output.log"
+    threads: 6
     shell:
         "scripts/tab_visualize.sh"
 
 rule seq_visualize:
     input: "rep-seqs-dn-99.qza"
     output: "rep-seqs.qzv"
+    log: "logs/seq_visualize/output.log"
+    threads: 6
     shell:
         "scripts/rep_seqs_visualize.sh"

@@ -29,7 +29,7 @@ manifest = args.output
 
 # Create tuple of the fastqs in the data directory, listing their parent directory
 #   (e.g. 'ERR1353528.fastq')
-fastqs = tuple(os.listdir(fastq_dir))
+fastqs = sorted(list(os.listdir(fastq_dir)))
 
 # Create tuple of sample id's from fastqs, minus their suffices and file extensions
 #   (e.g. 'ERR1353528')
@@ -64,6 +64,7 @@ if len(forward) > 0 and len(reverse) > 0:
 
     # Import the dictionary into a dataframe
     print("sample_id =", sample_id)
+    print("fastqs =", fastqs)
     print("fastqs_abs_path = ", fastqs_abs_path)
     print("forward =", forward)
     print("reverse =", reverse)
