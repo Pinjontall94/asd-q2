@@ -8,7 +8,7 @@ from qiime2 import Artifact
 
 demux = Artifact.load('test-paired-end-demux.qza')
 
-#merged_seqs = join_pairs(demultiplexed_seqs=demux)
+merged_seqs = join_pairs(demultiplexed_seqs=demux)
 
 demuxJoinedResults = join_pairs(demultiplexed_seqs=demux)
 demuxJoinedVisResults = feature_table.visualizers.summarize(demuxJoinedResults.table)

@@ -1,6 +1,11 @@
 # Specify NCBI's forward and reverse fastq file naming scheme for snakemake
 DIRECTION = ["1", "2"]
 
+#TODO: Fix this such that SAMPLES is taken from the list of samples with forward and reverse
+#       reads. This currently breaks rule 'srrMunch' when ANY sample in the accession list has
+#       no "_1.fastq" or "_2.fastq" output files. Better to run srrMunch first (maybe not even
+#       as a snakemake rule, given non-deterministic outcomes), and then establish SAMPLES
+#       variable from a subset of the files in "data", like maybe all _1.fastq SRRs?
 # Generate sample list by reading NCBI accession list file line-by-line
 with open("SRR_Acc_List.txt") as f:
     SAMPLES = [line.rstrip("\n") for line in f]
@@ -12,10 +17,8 @@ rule all:
     input:
         "rep-seqs.qzv"
 
-#ruleorder: srrMunch_paired > srrMunch_merged
-
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
-rule srrMunch_paired:
+rule srrMunch:
     input: "SRR_Acc_List.txt"
     output:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
@@ -27,20 +30,6 @@ rule srrMunch_paired:
             fasterq-dump -O data $line
         done < {input}) > {log} 2>&1
         """
-
-#NOTE: Not sure if this is needed, but still need to test how qiime2 handles
-#   mixed un/merged seqs within a single bioproject
-#rule srrMunch_merged:
-#    input: "SRR_Acc_List.txt"
-#    output:
-#        expand("data/{sample}.fastq", sample=SAMPLES)
-#    log: "logs/srrMunch/output.log"
-#    shell:
-#        """
-#        (while read line; do
-#            fasterq-dump -o {output} $line
-#        done < {input}) 2> {log}
-#        """
 
 #ruleorder: generate_manifest_paired > generate_manifest_merged
 #TODO: Create an input function to determine whether you're using
