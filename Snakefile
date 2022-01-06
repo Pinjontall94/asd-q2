@@ -20,7 +20,7 @@ DIRECTION = ["1", "2"]
 #
 # Generate sample list by reading NCBI accession list file line-by-line
 with open("SRR_Acc_List.txt") as f:
-    SAMPLES = [line.rstrip("\n") for line in f]
+    ALL_SRRs = [line.rstrip("\n") for line in f]
 
 
 #configfile: "config.yaml"
@@ -33,7 +33,7 @@ rule all:
 rule srrMunch:
     input: "SRR_Acc_List.txt"
     output:
-        expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
+        expand("data/{sample}.fastq", sample=ALL_SRRs)
     log: "logs/srrMunch/output.log"
     threads: 6
     shell:
@@ -44,12 +44,19 @@ rule srrMunch:
         """
 
 # Snippets to generate a list of only the SRRs that have pairwise data
-all_fastqs = [x for x in os.listdir("data")]
-paired_SRRs = [x.split("_")[0] for x in all_fastqs if x.endswith("_2.fastq")]
+ALL_FASTQS = [x for x in os.listdir("data")]
+SAMPLES = [x.split("_")[0] for x in ALL_FASTQS if x.endswith("_2.fastq")]
 
 #ruleorder: generate_manifest_paired > generate_manifest_merged
 #TODO: Create an input function to determine whether you're using
 #   "data/{sample}_{direction}.fastq" or "data/{sample}.fastq"
+#
+#TODO: Modify manifest_gen.py to take an input list (in this case, {wildcard.sample}).
+#       Or alternatively, filter the list of SAMPLES vs ALL_SRRs, and place those files
+#       in a new directory to use an the input to the current version of manifest_gen.py
+
+# Filter SRRs by
+
 # Create qiime2 manifest
 rule generate_manifest:
     input:
@@ -149,6 +156,19 @@ rule de_novo:
     threads: 6
     shell:
         "scripts/de-novo.sh"
+
+rule q2_export:
+    input:
+        "table-dn-99.qza"
+    output:
+        "table-dn-99.biom"
+    log: "logs/q2_export/output.log"
+    shell:
+        """
+        (qiime tools export \
+        --input-path {input} \
+        --output-path {output}) > {log} 2>&1
+        """
 
 rule tabulate_seqs:
     input: "table-dn-99.qza"
