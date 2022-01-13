@@ -10,6 +10,7 @@ with open("SRR_Acc_List.txt") as f:
 
 rule all:
     input:
+        "table.qzv",
         "rep-seqs.qzv"
 
 #ruleorder: srrMunch_paired > srrMunch_merged
