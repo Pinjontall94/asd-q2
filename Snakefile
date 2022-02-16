@@ -1,9 +1,26 @@
 # Specify NCBI's forward and reverse fastq file naming scheme for snakemake
 DIRECTION = ["1", "2"]
 
+#TODO: Fix this such that SAMPLES is taken from the list of samples with forward and reverse
+#       reads. This currently breaks rule 'srrMunch' when ANY sample in the accession list has
+#       no "_1.fastq" or "_2.fastq" output files. Better to run srrMunch first (maybe not even
+#       as a snakemake rule, given non-deterministic outcomes), and then establish SAMPLES
+#       variable from a subset of the files in "data", like maybe all _1.fastq SRRs?
+#
+#NOTE: Never mind? Adding -S to fasterq-dump outputs files in fastq-dump --split-files format,
+#       so each file gets a _1 & _2? Not sure how the default split-3 format differs in this
+#       context, but it seems to work? Fine if the process throws those reads out later, I just
+#       need it to work with Snakemake until the import stage.
+#
+#NOTE: Okay now we're getting somewhere. split-files works for importing, but will mess up vsearch
+#       join_pairs down the line ("more forward than reverse reads" errors). BUT, if the only SRRs
+#       included have both _1 and _2 with the old option (the split-3 default, i.e. no "-S" flag),
+#       THEN everything will work. So...the initial assumption is probably correct: run srr munch
+#       script first, then get the SAMPLES var from the resulting files.
+#
 # Generate sample list by reading NCBI accession list file line-by-line
 with open("SRR_Acc_List.txt") as f:
-    SAMPLES = [line.rstrip("\n") for line in f]
+    ALL_SRRs = [line.rstrip("\n") for line in f]
 
 
 #configfile: "config.yaml"
@@ -13,13 +30,11 @@ rule all:
         "table.qzv",
         "rep-seqs.qzv"
 
-#ruleorder: srrMunch_paired > srrMunch_merged
-
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
-rule srrMunch_paired:
+rule srrMunch:
     input: "SRR_Acc_List.txt"
     output:
-        expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
+        expand("data/{sample}.fastq", sample=ALL_SRRs)
     log: "logs/srrMunch/output.log"
     threads: 6
     shell:
@@ -29,23 +44,20 @@ rule srrMunch_paired:
         done < {input}) > {log} 2>&1
         """
 
-#NOTE: Not sure if this is needed, but still need to test how qiime2 handles
-#   mixed un/merged seqs within a single bioproject
-#rule srrMunch_merged:
-#    input: "SRR_Acc_List.txt"
-#    output:
-#        expand("data/{sample}.fastq", sample=SAMPLES)
-#    log: "logs/srrMunch/output.log"
-#    shell:
-#        """
-#        (while read line; do
-#            fasterq-dump -o {output} $line
-#        done < {input}) 2> {log}
-#        """
+# Snippets to generate a list of only the SRRs that have pairwise data
+ALL_FASTQS = [x for x in os.listdir("data")]
+SAMPLES = [x.split("_")[0] for x in ALL_FASTQS if x.endswith("_2.fastq")]
 
 #ruleorder: generate_manifest_paired > generate_manifest_merged
 #TODO: Create an input function to determine whether you're using
 #   "data/{sample}_{direction}.fastq" or "data/{sample}.fastq"
+#
+#TODO: Modify manifest_gen.py to take an input list (in this case, {wildcard.sample}).
+#       Or alternatively, filter the list of SAMPLES vs ALL_SRRs, and place those files
+#       in a new directory to use an the input to the current version of manifest_gen.py
+
+# Filter SRRs by
+
 # Create qiime2 manifest
 rule generate_manifest:
     input:
@@ -145,6 +157,19 @@ rule de_novo:
     threads: 6
     shell:
         "scripts/de-novo.sh"
+
+rule q2_export:
+    input:
+        "table-dn-99.qza"
+    output:
+        "table-dn-99.biom"
+    log: "logs/q2_export/output.log"
+    shell:
+        """
+        (qiime tools export \
+        --input-path {input} \
+        --output-path {output}) > {log} 2>&1
+        """
 
 rule tabulate_seqs:
     input: "table-dn-99.qza"
