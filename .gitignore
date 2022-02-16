@@ -10,3 +10,4 @@
 /logs/
 /*.qza
 /*.qzv
+/config.yaml.bak

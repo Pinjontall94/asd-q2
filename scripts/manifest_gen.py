@@ -6,7 +6,7 @@
 #   populated with fastq.gz files
 
 import argparse
-import os
+import os, subprocess
 import re
 import pandas as pd
 
@@ -27,6 +27,16 @@ else:
 
 manifest = args.output
 
+# Download all fastqs and place in fastq_dir
+accession_list = "SRR_Acc_List.txt"
+
+with open(accession_list, "r") as file:
+    srr_list = [x.rstrip() for x in file]
+    for i in srr_list:
+        subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i])
+#    [subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i]) for i in srr_list] # list-wise subprocess call
+
+
 # Create tuple of the fastqs in the data directory, listing their parent directory
 #   (e.g. 'ERR1353528.fastq')
 fastqs = sorted(list(os.listdir(fastq_dir)))
@@ -38,7 +48,7 @@ fastqs = sorted(list(os.listdir(fastq_dir)))
 substrings = [re.search(".*(?=_R?[12]\\.fastq)", i) for i in fastqs]
 
 # Get a list from the list of re.match objects (so it can be used in the dataframe later)
-#sample_strings = list(map(lambda x: x.group(), substrings))
+# sample_strings = list(map(lambda x: x.group(), substrings))
 sample_strings = [x.group() for x in substrings if x]
 
 # Remove redundant entries from the reverse reads by taking only unique values in sample_strings

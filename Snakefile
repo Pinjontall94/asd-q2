@@ -1,3 +1,5 @@
+import subprocess
+
 # Specify NCBI's forward and reverse fastq file naming scheme for snakemake
 DIRECTION = ["1", "2"]
 
@@ -162,7 +164,7 @@ rule q2_export:
     input:
         "table-dn-99.qza"
     output:
-        "table-dn-99.biom"
+        "table-dn-99"
     log: "logs/q2_export/output.log"
     shell:
         """
@@ -170,6 +172,14 @@ rule q2_export:
         --input-path {input} \
         --output-path {output}) > {log} 2>&1
         """
+
+rule biom_convert:
+    input:
+        "table-dn-99/table-dn-99.biom"
+    output:
+        "table-dn-99/table-dn-99.tsv"
+    run:
+        subprocess.Popen(["biom", "convert", "-i", {input}, "-o", {output}, "--to-tsv"])
 
 rule tabulate_seqs:
     input: "table-dn-99.qza"
