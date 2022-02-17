@@ -100,45 +100,52 @@ rule merge_pairs:
 #        """
 
 # Trim Primers
-#rule primer_trim:
-#    input: "test-merged.qza"
-#    output: "trimmed_demux.qza"
-#    log: "logs/primer_trim/output.log"
-#    params:
-#        fwd=config["primers"]["FWD"]
-#        rev=config["primers"]["REV"]
-#    shell:
-#        """
-#        qiime cutadapt trim-paired \
-#        --i-demultiplexed-sequences {input} \
-#        --p-adapter-f {params.fwd} \
-#        --p-adapter-r {params.rev} \
-#        --p-discard-untrimmed \
-#        --o-trimmed-sequences {output}
-#        """
+rule primer_trim:
+    input: "test-merged.qza"
+    output: "trimmed_demux.qza"
+    log: "logs/primer_trim/output.log"
+    params:
+        fwd=config["primers"]["FWD"]
+        rev=config["primers"]["REV"]
+    shell:
+        """
+        qiime cutadapt trim-paired \
+        --i-demultiplexed-sequences {input} \
+        --p-adapter-f {params.fwd} \
+        --p-adapter-r {params.rev} \
+        --p-discard-untrimmed \
+        --o-trimmed-sequences {output}
+        """
 
-#rule offset:
-#    input: "trimmed_demux.qza"
-#    output: "offset_demux.qza"
-#    log: "logs/offset_trim/output.log"
-#    params:
-#        fwd=config["primers"]["FWD"]
-#        rev=config["primers"]["REV"]
-#    shell:
-#        """
-#        qiime cutadapt trim-paired \
-#        --i-demultiplexed-sequences {input} \
-#        --p-adapter-f {params.fwd} \
-#        --p-adapter-r {params.rev} \
-#        --p-discard-untrimmed \
-#        --o-trimmed-sequences {output}
-#        """
+rule offset:
+    input: "trimmed_demux.qza"
+    output: "offset_demux.qza"
+    log: "logs/offset_trim/output.log"
+    params:
+        fwd=config["primers"]["FWD"]
+        rev=config["primers"]["REV"]
+    shell:
+        """
+        qiime cutadapt trim-paired \
+        --i-demultiplexed-sequences {input} \
+        --p-adapter-f {params.fwd} \
+        --p-adapter-r {params.rev} \
+        --p-discard-untrimmed \
+        --o-trimmed-sequences {output}
+        """
 
 # TODO: Add input function to output "trimmed_demux.qza" or "offset_demux.qza",
 #   depending on whether config["offset"]["FWD"] or config["offset"]["REV"]
 #   are non-zero. Let this function also determine parameters in trim and
 #   offset rules if possible. Otherwise have 4 separate rules for 5' and 3'
 #   cutadapt trim and offset.
+
+def offset_needed():
+    if config["offset"]["FWD"] or config["offset"]["REV"]:
+        return "offset_demux.qza"
+    else:
+        return "trimmed_demux.qza"
+
 rule derep:
     input: "test-merged.qza"
     output:
