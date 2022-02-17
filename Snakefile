@@ -30,7 +30,8 @@ with open("SRR_Acc_List.txt") as f:
 rule all:
     input:
         "table.qzv",
-        "rep-seqs.qzv"
+        "rep-seqs.qzv",
+        "table-dn-99/feature-table.tsv"
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -40,6 +41,8 @@ rule srrMunch:
     log: "logs/srrMunch/output.log"
     threads: 6
     shell:
+        # NOTE: Could just trash the non-biologic reads
+        # (i.e. the third fastq per SRR, the one without the _1 or _2 suffix)
         """
         (while read line; do
             fasterq-dump -O data $line
@@ -73,7 +76,6 @@ rule import:
     input: "manifest.tsv"
     output: "test-paired-end-demux.qza"
     log: "logs/generate_manifest/output.log"
-    threads: 6
     shell:
         "scripts/import-paired.sh"
 #        """
@@ -89,7 +91,6 @@ rule merge_pairs:
     input: "test-paired-end-demux.qza"
     output: "test-merged.qza"
     log: "logs/merge_pairs/output.log"
-    threads: 6
     shell:
         "scripts/join_pairs.sh"
 #        """
@@ -144,7 +145,6 @@ rule derep:
         "table.qza",
         "rep-seqs.qza"
     log: "logs/derep/output.log"
-    threads: 6
     shell:
         "scripts/derep.sh"
 
@@ -156,7 +156,6 @@ rule de_novo:
         "table-dn-99.qza",
         "rep-seqs-dn-99.qza"
     log: "logs/de_novo/output.log"
-    threads: 6
     shell:
         "scripts/de-novo.sh"
 
@@ -175,11 +174,14 @@ rule q2_export:
 
 rule biom_convert:
     input:
-        "table-dn-99/table-dn-99.biom"
+        "table-dn-99/feature-table.biom"
     output:
-        "table-dn-99/table-dn-99.tsv"
-    run:
-        subprocess.Popen(["biom", "convert", "-i", {input}, "-o", {output}, "--to-tsv"])
+        "table-dn-99/feature-table.tsv"
+    log: "logs/biom_convert/output.log"
+    shell:
+        """
+        (biom convert -i {input} -o {output} --to-tsv) > {log} 2>&1
+        """
 
 rule tabulate_seqs:
     input: "table-dn-99.qza"
