@@ -190,18 +190,20 @@ rule biom_convert:
         (biom convert -i {input} -o {output} --to-tsv) > {log} 2>&1
         """
 
-rule tabulate_seqs:
-    input: "table-dn-99.qza"
-    output: "table.qzv"
-    log: "logs/tabulate_seqs/output.log"
-    threads: 6
+rule clean:
+    input:
+        "manifest.tsv",
+        "rep-seqs-dn99.qza",
+        "rep-seqs.qza",
+        "rep-seqs.qzv",
+        "table-dn-99",
+        "table-dn-99.qza",
+        "table.qza",
+        "table.qzv",
+        "test-merged.qza",
+        "test-paired-end-demux.qza"
+    log: "logs/clean/output.log"
     shell:
-        "scripts/tab_visualize.sh"
-
-rule seq_visualize:
-    input: "rep-seqs-dn-99.qza"
-    output: "rep-seqs.qzv"
-    log: "logs/seq_visualize/output.log"
-    threads: 6
-    shell:
-        "scripts/rep_seqs_visualize.sh"
+        """
+        (rm -rv {input}) > {log} 2>&1
+        """
