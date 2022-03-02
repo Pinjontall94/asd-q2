@@ -189,21 +189,3 @@ rule biom_convert:
         """
         (biom convert -i {input} -o {output} --to-tsv) > {log} 2>&1
         """
-
-rule clean:
-    input:
-        "manifest.tsv",
-        "rep-seqs-dn99.qza",
-        "rep-seqs.qza",
-        "rep-seqs.qzv",
-        "table-dn-99",
-        "table-dn-99.qza",
-        "table.qza",
-        "table.qzv",
-        "test-merged.qza",
-        "test-paired-end-demux.qza"
-    log: "logs/clean/output.log"
-    shell:
-        """
-        (rm -rv {input}) > {log} 2>&1
-        """
