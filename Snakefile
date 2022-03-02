@@ -29,9 +29,8 @@ with open("SRR_Acc_List.txt") as f:
 
 rule all:
     input:
-        "table.qzv",
-        "rep-seqs.qzv",
         "table-dn-99/feature-table.tsv"
+    threads: 7
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
 rule srrMunch:
@@ -39,7 +38,6 @@ rule srrMunch:
     output:
         expand("data/{sample}.fastq", sample=ALL_SRRs)
     log: "logs/srrMunch/output.log"
-    threads: 6
     shell:
         # NOTE: Could just trash the non-biologic reads
         # (i.e. the third fastq per SRR, the one without the _1 or _2 suffix)
@@ -68,6 +66,7 @@ rule generate_manifest:
     input:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
     output: "manifest.tsv"
+    log: "logs/generate_manifest/output.log"
     shell:
         "python scripts/manifest_gen.py -i data -o {output}"
 
@@ -75,7 +74,7 @@ rule generate_manifest:
 rule import:
     input: "manifest.tsv"
     output: "test-paired-end-demux.qza"
-    log: "logs/generate_manifest/output.log"
+    log: "logs/import/output.log"
     shell:
         "scripts/import-paired.sh"
 #        """
@@ -89,7 +88,7 @@ rule import:
 # Merge pairs using q2-vsearch join-pairs
 rule merge_pairs:
     input: "test-paired-end-demux.qza"
-    output: "test-merged.qza"
+    output: temp("test-merged.qza")
     log: "logs/merge_pairs/output.log"
     shell:
         "scripts/join_pairs.sh"
@@ -100,39 +99,39 @@ rule merge_pairs:
 #        """
 
 # Trim Primers
-rule primer_trim:
-    input: "test-merged.qza"
-    output: "trimmed_demux.qza"
-    log: "logs/primer_trim/output.log"
-    params:
-        fwd=config["primers"]["FWD"]
-        rev=config["primers"]["REV"]
-    shell:
-        """
-        qiime cutadapt trim-paired \
-        --i-demultiplexed-sequences {input} \
-        --p-adapter-f {params.fwd} \
-        --p-adapter-r {params.rev} \
-        --p-discard-untrimmed \
-        --o-trimmed-sequences {output}
-        """
-
-rule offset:
-    input: "trimmed_demux.qza"
-    output: "offset_demux.qza"
-    log: "logs/offset_trim/output.log"
-    params:
-        fwd=config["primers"]["FWD"]
-        rev=config["primers"]["REV"]
-    shell:
-        """
-        qiime cutadapt trim-paired \
-        --i-demultiplexed-sequences {input} \
-        --p-adapter-f {params.fwd} \
-        --p-adapter-r {params.rev} \
-        --p-discard-untrimmed \
-        --o-trimmed-sequences {output}
-        """
+#rule primer_trim:
+#    input: "test-merged.qza"
+#    output: "trimmed_demux.qza"
+#    log: "logs/primer_trim/output.log"
+#    params:
+#        fwd=config["primers"]["FWD"]
+#        rev=config["primers"]["REV"]
+#    shell:
+#        """
+#        qiime cutadapt trim-paired \
+#        --i-demultiplexed-sequences {input} \
+#        --p-adapter-f {params.fwd} \
+#        --p-adapter-r {params.rev} \
+#        --p-discard-untrimmed \
+#        --o-trimmed-sequences {output}
+#        """
+#
+#rule offset:
+#    input: "trimmed_demux.qza"
+#    output: "offset_demux.qza"
+#    log: "logs/offset_trim/output.log"
+#    params:
+#        fwd=config["primers"]["FWD"]
+#        rev=config["primers"]["REV"]
+#    shell:
+#        """
+#        qiime cutadapt trim-paired \
+#        --i-demultiplexed-sequences {input} \
+#        --p-adapter-f {params.fwd} \
+#        --p-adapter-r {params.rev} \
+#        --p-discard-untrimmed \
+#        --o-trimmed-sequences {output}
+#        """
 
 # TODO: Add input function to output "trimmed_demux.qza" or "offset_demux.qza",
 #   depending on whether config["offset"]["FWD"] or config["offset"]["REV"]
@@ -140,17 +139,17 @@ rule offset:
 #   offset rules if possible. Otherwise have 4 separate rules for 5' and 3'
 #   cutadapt trim and offset.
 
-def offset_needed():
-    if config["offset"]["FWD"] or config["offset"]["REV"]:
-        return "offset_demux.qza"
-    else:
-        return "trimmed_demux.qza"
+#def offset_needed():
+#    if config["offset"]["FWD"] or config["offset"]["REV"]:
+#        return "offset_demux.qza"
+#    else:
+#        return "trimmed_demux.qza"
 
 rule derep:
     input: "test-merged.qza"
     output:
-        "table.qza",
-        "rep-seqs.qza"
+        temp("table.qza"),
+        temp("rep-seqs.qza")
     log: "logs/derep/output.log"
     shell:
         "scripts/derep.sh"
@@ -160,8 +159,8 @@ rule de_novo:
         table="table.qza",
         seqs="rep-seqs.qza"
     output:
-        "table-dn-99.qza",
-        "rep-seqs-dn-99.qza"
+        temp("table-dn-99.qza"),
+        temp("rep-seqs-dn-99.qza")
     log: "logs/de_novo/output.log"
     shell:
         "scripts/de-novo.sh"
@@ -170,13 +169,11 @@ rule q2_export:
     input:
         "table-dn-99.qza"
     output:
-        "table-dn-99"
-    log: "logs/q2_export/output.log"
+        out_dir=directory("table-dn-99"),
+        biom=temp("table-dn-99/feature-table.biom")
     shell:
         """
-        (qiime tools export \
-        --input-path {input} \
-        --output-path {output}) > {log} 2>&1
+        scripts/q2_export.sh {input} {output.out_dir}
         """
 
 rule biom_convert:
