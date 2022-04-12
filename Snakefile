@@ -20,6 +20,8 @@ DIRECTION = ["1", "2"]
 #       THEN everything will work. So...the initial assumption is probably correct: run srr munch
 #       script first, then get the SAMPLES var from the resulting files.
 #
+#NOTE: Update this for use with ENA via fastq-dl (relies on metadata tsv rather than accession
+#       list, though you *can* just give it the PRJNA number!)
 # Generate sample list by reading NCBI accession list file line-by-line
 with open("SRR_Acc_List.txt") as f:
     ALL_SRRs = [line.rstrip("\n") for line in f]
