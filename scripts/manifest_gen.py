@@ -27,15 +27,13 @@ else:
 
 manifest = args.output
 
-# Download all fastqs and place in fastq_dir
-accession_list = "SRR_Acc_List.txt"
-
-with open(accession_list, "r") as file:
-    srr_list = [x.rstrip() for x in file]
-    for i in srr_list:
-        subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i])
-#    [subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i]) for i in srr_list] # list-wise subprocess call
-
+## Download all fastqs and place in fastq_dir
+#accession_list = "SRR_Acc_List.txt"
+#
+#with open(accession_list, "r") as file:
+#    srr_list = [x.rstrip() for x in file]
+#    for i in srr_list:
+#        subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i])
 
 # Create tuple of the fastqs in the data directory, listing their parent directory
 #   (e.g. 'ERR1353528.fastq')
