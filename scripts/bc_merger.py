@@ -1,6 +1,7 @@
 """An updated python3 script to merge barcode and read fastas."""
 
 from argparse import ArgumentParser
+import fastq as fq
 
 #  Credit: walterst, https://gist.github.com/walterst/7326543
 #
@@ -57,6 +58,8 @@ parser.add_argument("-o", "--output", action="store", required=True)
 
 args = parser.parse_args()
 
-barcodes = args.barcodes
-sequence = args.sequence
+barcodes = fq.read(args.barcodes)
+sequence = fq.read(args.sequence)
 combined = args.output
+
+print(barcodes.info, sequence.info)
