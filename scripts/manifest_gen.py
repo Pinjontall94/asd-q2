@@ -10,6 +10,7 @@ import os, subprocess
 import re
 import pandas as pd
 
+
 parser = argparse.ArgumentParser(
     description="Generates a Qiime 2-compatible manifest.tsv"
 )
@@ -19,6 +20,7 @@ parser.add_argument("-o", "--output", action="store", required=True)
 
 args = parser.parse_args()
 
+
 # Add trailing backslash on fastq directory (if not specified on command line)
 if re.search("/$", args.input):
     fastq_dir = args.input
@@ -27,20 +29,10 @@ else:
 
 manifest = args.output
 
-## Download all fastqs and place in fastq_dir
-#accession_list = "SRR_Acc_List.txt"
-#
-#with open(accession_list, "r") as file:
-#    srr_list = [x.rstrip() for x in file]
-#    for i in srr_list:
-#        subprocess.Popen(["fasterq-dump", "-O", fastq_dir, i])
 
 # Create tuple of the fastqs in the data directory, listing their parent directory
 #   (e.g. 'ERR1353528.fastq')
 fastqs = sorted(list(os.listdir(fastq_dir)))
-
-# Create tuple of sample id's from fastqs, minus their suffices and file extensions
-#   (e.g. 'ERR1353528')
 
 # Extracts substrings from fastqs as re.match objects
 substrings = [re.search(".*(?=_R?[12]\\.fastq)", i) for i in fastqs]
@@ -51,6 +43,7 @@ sample_strings = [x.group() for x in substrings if x]
 
 # Remove redundant entries from the reverse reads by taking only unique values in sample_strings
 sample_id = list(dict.fromkeys(sample_strings))
+
 
 # NOTE: Doesn't work, splitext leaves the read direction attached.
 # Use re.search instead to extract the sample id substring.
