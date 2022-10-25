@@ -1,5 +1,7 @@
 import subprocess
 
+subprocess.run(["mkdir", "data"])
+
 # Specify NCBI's forward and reverse fastq file naming scheme for snakemake
 DIRECTION = ["1", "2"]
 
@@ -35,18 +37,16 @@ rule all:
     threads: 7
 
 # Download fastqs from NCBI, reading from SRR_Acc_List.txt
+# TODO: Modify to a single tar file as output
 rule srrMunch:
     input: "SRR_Acc_List.txt"
-    output:
-        expand("data/{sample}.fastq", sample=ALL_SRRs)
+    output: "data/fastqs.tar"
     log: "logs/srrMunch/output.log"
     shell:
         # NOTE: Could just trash the non-biologic reads
         # (i.e. the third fastq per SRR, the one without the _1 or _2 suffix)
         """
-        (while read line; do
-            fasterq-dump -O data $line
-        done < {input}) > {log} 2>&1
+        scripts/SrrMunch2.sh {input} data
         """
 
 # Snippets to generate a list of only the SRRs that have pairwise data
@@ -64,6 +64,7 @@ SAMPLES = [x.split("_")[0] for x in ALL_FASTQS if x.endswith("_2.fastq")]
 # Filter SRRs by
 
 # Create qiime2 manifest
+# TODO: modify to expect the srr.tar output of srrmunch
 rule generate_manifest:
     input:
         expand("data/{sample}_{direction}.fastq", sample=SAMPLES, direction=DIRECTION)
