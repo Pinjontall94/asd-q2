@@ -11,11 +11,6 @@ DIRECTION = ["1", "2"]
 #       as a snakemake rule, given non-deterministic outcomes), and then establish SAMPLES
 #       variable from a subset of the files in "data", like maybe all _1.fastq SRRs?
 #
-#NOTE: Never mind? Adding -S to fasterq-dump outputs files in fastq-dump --split-files format,
-#       so each file gets a _1 & _2? Not sure how the default split-3 format differs in this
-#       context, but it seems to work? Fine if the process throws those reads out later, I just
-#       need it to work with Snakemake until the import stage.
-#
 #NOTE: Okay now we're getting somewhere. split-files works for importing, but will mess up vsearch
 #       join_pairs down the line ("more forward than reverse reads" errors). BUT, if the only SRRs
 #       included have both _1 and _2 with the old option (the split-3 default, i.e. no "-S" flag),
