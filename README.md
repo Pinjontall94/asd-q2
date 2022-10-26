@@ -19,7 +19,10 @@ mambaforge distribution)
 2. Download the NCBI Accession List (e.g. "SRR_Acc_list.txt") and move it into 
 the asd-q2 folder
 
-3. Run the following in the asd-q2 folder: `python scripts/srr_munch.py -i SRR_Acc_List.txt -o data`
+3. Run the following in the asd-q2 folder: 
+```sh
+python scripts/srr_munch.py -i SRR_Acc_List.txt -o data
+```
 
 4. Modify the config file ("config.yaml") to fit your analysis
 Update the following parameters, in plain text, unless otherwise specified:
