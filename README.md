@@ -8,21 +8,20 @@ can be extracted the same as any .zip file, if you so choose
 ### Preparation, or "Before you run snakemake"
 
 1. Clone this repository and create a new conda environment with the provided
-
 ``` sh
 git clone git@github.com:Pinjontall94/asd-q2.git /your/new/analysis/folder
-
 mamba env create -f environment.yml 
 ```
-
 Note: conda will work if you don't have conda installed, but as 
 [Snakemake itself recommends](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html#installation-via-conda-mamba), I highly encourage you to use mamba (whether on its own, or via the
 mambaforge distribution)
 
-2. Download the NCBI Accession List (e.g. "SRA_Acc_list.txt") and move it into 
+2. Download the NCBI Accession List (e.g. "SRR_Acc_list.txt") and move it into 
 the asd-q2 folder
 
-3. Modify the config file ("config.yaml") to fit your analysis
+3. Run the following in the asd-q2 folder: `python scripts/srr_munch.py -i SRR_Acc_List.txt -o data`
+
+4. Modify the config file ("config.yaml") to fit your analysis
 Update the following parameters, in plain text, unless otherwise specified:
 * "AUTHOR": a string containing <b>no</b> spaces (e.g. "Franklin_53")
 * "primers", "FWD" and "REV": integer values only (e.g. FWD: 5)
@@ -48,7 +47,7 @@ THREADS: 8
 ```
 
 
-4. Activate the asd-q2 conda environment
+1. Activate the asd-q2 conda environment
 
 ``` sh
 conda activate asd-q2
