@@ -12,7 +12,7 @@ can be extracted the same as any .zip file, if you so choose
 git clone git@github.com:Pinjontall94/asd-q2.git /your/new/analysis/folder
 mamba env create -f environment.yml 
 ```
-Note: conda will work if you don't have conda installed, but as 
+Note: the standard conda tool that comes with Anaconda will work, but as 
 [Snakemake itself recommends](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html#installation-via-conda-mamba), I highly encourage you to use mamba (whether on its own, or via the
 mambaforge distribution)
 
