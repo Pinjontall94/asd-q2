@@ -7,10 +7,12 @@ can be extracted the same as any .zip file, if you so choose
 
 ### Preparation, or "Before you run snakemake"
 
-1. Clone this repository and create a new conda environment with the provided
+1. Clone this repository and create & activate a new conda environment with the 
+provided environment file
 ``` sh
-git clone git@github.com:Pinjontall94/asd-q2.git /your/new/analysis/folder
-mamba env create -f environment.yml 
+git clone --depth 1 git@github.com:Pinjontall94/asd-q2.git /your/new/analysis/folder
+mamba env create -f environment.yaml 
+conda activate snakeqiimer
 ```
 Note: the standard conda tool that comes with Anaconda will work, but as 
 [Snakemake itself recommends](https://snakemake.readthedocs.io/en/stable/getting_started/installation.html#installation-via-conda-mamba), I highly encourage you to use mamba (whether on its own, or via the
@@ -49,19 +51,12 @@ offset:
 THREADS: 8
 ```
 
-
-1. Activate the asd-q2 conda environment
-
-``` sh
-conda activate asd-q2
-```
-
 ### Optional: Visualize the pipeline
 
 Note: Requires graphviz is installed 
 
 ``` sh
-(asd-q2) /your/new/analysis/folder/asd-q2 $ snakemake --dag | dot -Tsvg > dag.svg
+(snakeqiimer) /your/new/analysis/folder/asd-q2 $ snakemake --dag | dot -Tsvg > dag.svg
 ```
 
 ### Run the pipeline 
@@ -70,7 +65,7 @@ Note: Requires graphviz is installed
 Run with:
 
 ``` sh
-(asd-q2) /your/new/analysis/folder/asd-q2 $ snakemake
+(snakeqiimer) /your/new/analysis/folder/asd-q2 $ snakemake -cN  # where N = number of cores
 ```
 
 Your output files will be stored in a newly made "OTUs" folder
