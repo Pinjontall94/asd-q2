@@ -1,7 +1,9 @@
 """Download all fastqs in an SRR accession list."""
 
 import argparse
+import os
 import subprocess
+from tqdm import tqdm
 
 
 def parse_arguments():
@@ -20,19 +22,22 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def batch_download(acc_list: str, output_dir: str):
+def batch_download(acc_list, output_dir):
     """Open a shell subprocess to download all fastqs into the output."""
-    with open(acc_list, 'r', encoding='utf8') as file:
-        for line in file:
-            try:
-                subprocess.run([
-                    'fasterq-dump', '-O', output_dir, line.strip('\n')
-                ], check=True)
+    acc_list_file_size = os.path.getsize(acc_list)
+    with tqdm(total=acc_list_file_size) as pbar:
+        with open(acc_list, 'r', encoding='utf8') as file:
+                for line in file:
+                    try:
+                        cmd = ['fasterq-dump', '-p', '-O', output_dir, line.strip()]
+                        subprocess.run(cmd, check=True)
+                        # Increment progress bar
+                        pbar.update(len(line.encode('utf-8')))
 
-            except ChildProcessError as error:
-                print(error)
+                    except ChildProcessError as error:
+                        print(error)
 
-        print(f'Output Directory is: {output_dir}')
+    print(f'Output Directory is: {output_dir}')
 
 
 if __name__ == '__main__':
