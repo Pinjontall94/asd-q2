@@ -6,80 +6,92 @@
 #   populated with fastq.gz files
 
 import argparse
-import os, subprocess
+import os
 import re
 import pandas as pd
 
 
-parser = argparse.ArgumentParser(
-    description="Generates a Qiime 2-compatible manifest.tsv"
-)
+class Reads:
+    def __init__(self, fastq_dir):
+        self._fastq_dir = fastq_dir
+        self._fwd_pattern = r"_R?1\.fastq"
+        self._rev_pattern = r"_R?2\.fastq"
+        self.fastqs = sorted([*os.listdir(self._fastq_dir)])
+        import pdb; pdb.set_trace()
+        self.sample_ids = self.gen_sample_ids(self.fastqs)
+        self.fastqs_abs_path = ["$PWD/" + fastq_dir + x for x in self.fastqs]
+        self.forward_reads = self._gen_reads(
+                self._fwd_pattern,
+                self.fastqs_abs_path
+                )
+        self.reverse_reads = self._gen_reads(
+                self._rev_pattern,
+                self.fastqs_abs_path
+                )
+        self.manifest = self._gen_manifest(
+                self.sample_ids,
+                self.forward_reads,
+                self.reverse_reads,
+                self.fastqs_abs_path
+                )
 
-parser.add_argument("-i", "--input", action="store", required=True)
-parser.add_argument("-o", "--output", action="store", required=True)
+        def gen_sample_ids(self, fastqs):
+            pattern = ".*(?=_R?[12]\\.fastq)"
+            substrings = [re.search(pattern, i) for i in self.fastqs]
+            sample_strings = [x.group() for x in substrings if x]
+            return list(dict.fromkeys(sample_strings))
 
-args = parser.parse_args()
+        def _gen_reads(self, search_pattern, abs_path):
+            return [re.search(search_pattern, x) for x in abs_path]
+
+        def _gen_manifest(self, sample_ids, forward, reverse, abs_path):
+            try:
+                if len(forward) > 0 and len(reverse) > 0:
+                    # Create dictionary of headers and columns
+                    d = {
+                        "sample-id": sample_ids,
+                        "forward-absolute-filepath": forward,
+                        "reverse-absolute-filepath": reverse,
+                    }
+                else:
+                    assert len(forward) == 0 and len(reverse) == 0
+                    d = {
+                        "sample-id": sample_ids,
+                        "absolute-filepath": abs_path
+                    }
+                return d
+
+            except AssertionError:
+                print("Error! Mismatched numbers of forward and reverse reads")
 
 
-# Add trailing backslash on fastq directory (if not specified on command line)
-if re.search("/$", args.input):
-    fastq_dir = args.input
-else:
-    fastq_dir = args.input + "/"
-
-manifest = args.output
-
-
-# Create tuple of the fastqs in the data directory, listing their parent directory
-#   (e.g. 'ERR1353528.fastq')
-fastqs = sorted(list(os.listdir(fastq_dir)))
-
-# Extracts substrings from fastqs as re.match objects
-substrings = [re.search(".*(?=_R?[12]\\.fastq)", i) for i in fastqs]
-
-# Get a list from the list of re.match objects (so it can be used in the dataframe later)
-# sample_strings = list(map(lambda x: x.group(), substrings))
-sample_strings = [x.group() for x in substrings if x]
-
-# Remove redundant entries from the reverse reads by taking only unique values in sample_strings
-sample_id = list(dict.fromkeys(sample_strings))
+def parse_args():
+    parser = argparse.ArgumentParser(
+            description="""
+            Generates a Qiime 2-compatible manifest.tsv.
+            NOTE: Input requires trailing backslash (e.g. "data/")
+            """
+    )
+    parser.add_argument("-i", "--input", action="store", required=True)
+    parser.add_argument("-o", "--output", action="store", required=True)
+    return parser.parse_args()
 
 
-# NOTE: Doesn't work, splitext leaves the read direction attached.
-# Use re.search instead to extract the sample id substring.
-# sample_id = tuple(set(map(lambda x: os.path.splitext(x)[0], fastqs)))
+def main():
+    # Parse the cli and store args into variables
+    args = parse_args()
+    fastq_dir_path = args.input
+    manifest_path = args.output
 
-fastqs_abs_path = tuple(map(lambda x: "$PWD/" + fastq_dir + x, fastqs))
+    # Create a Reads object from our fastqs
+    reads = Reads(fastq_dir_path)
 
-forward = tuple(filter(lambda x: re.search(r"_R?1\.fastq", x), fastqs_abs_path))
-
-reverse = tuple(filter(lambda x: re.search(r"_R?2\.fastq", x), fastqs_abs_path))
-
-if len(forward) > 0 and len(reverse) > 0:
-    # Create dictionary of headers and columns
-    d = {
-        "sample-id": sample_id,
-        "forward-absolute-filepath": forward,
-        "reverse-absolute-filepath": reverse,
-    }
-
-    # Import the dictionary into a dataframe
-    print("sample_id =", sample_id)
-    print("fastqs =", fastqs)
-    print("fastqs_abs_path = ", fastqs_abs_path)
-    print("forward =", forward)
-    print("reverse =", reverse)
-    df = pd.DataFrame(d)
+    # Create a dataframe from the reads manifest dictionary
+    df = pd.DataFrame(reads.manifest)
 
     # Export the dataframe to a file labeled manifest.tsv
-    manifest_tsv = df.to_csv(manifest, sep="\t", index=False)
+    df.to_csv(manifest_path, sep="\t", index=False)
 
-elif len(forward) == 0 and len(reverse) == 0:
-    d = {"sample-id": sample_id, "absolute-filepath": fastqs_abs_path}
 
-    df = pd.DataFrame(d)
-
-    manifest_tsv = df.to_csv(manifest, sep="\t", index=False)
-
-else:
-    print("Error! Mismatched numbers of forward and reverse reads")
+if __name__ == "__main__":
+    main()
